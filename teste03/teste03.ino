@@ -6,9 +6,13 @@
 // Update these with values suitable for your network.
 int luz1 = 7;
 int luz2 = 8;
-int luz3 = 9;
-int cont = 1;
+
 const int LM35 = A0; // Define o pino que lera a saída do LM35
+int temperatura; // Variável que armazenará a temperatura medida
+
+unsigned long previousMillis = 0; // will store last time LED was updated
+// constants won't change :
+const long interval = 7000; 
 
 
 byte mac[]    = {  0xDE, 0xED, 0xBA, 0xFE, 0xFE, 0xED };
@@ -162,34 +166,17 @@ void callback(char* topic, byte* payload, unsigned int length) {
       mqttClient.publish("rs/luz2",convert(digitalRead(luz2)));
       Serial.println(convert(digitalRead(luz2)));
     }
-  }else if (strcmp(topic, "luz3") == 0){
-    //Serial.print("Luz 1 ligada");
-     if(service(payload, length).equals("1") == true){
-      digitalWrite(luz3, HIGH);
-      mqttClient.publish("r/luz3","1");
-    }else if(service(payload, length).equals("0") == true){
-      digitalWrite(luz3, LOW);
-      mqttClient.publish("r/luz3","0");
-    }else if(service(payload, length).equals("state") == true){
-      mqttClient.publish("rs/luz3",convert(digitalRead(luz3)));
-      Serial.println(convert(digitalRead(luz3)));
-    }
-  }
-  else if (strcmp(topic, "temp") == 0){
+  }else if (strcmp(topic, "temp") == 0){
     //Serial.print("Luz 1 ligada");
     if(service(payload, length).equals("state") == true){
       float temperatura = (float(analogRead(LM35))*5/(1023))/0.01;
-      char buffer[25];
+      char buffer[7];
       mqttClient.publish("rs/temp",floatToString(buffer, temperatura, 3));
     }
   }
   Serial.println();
 }
 
-
- 
-
- 
 void reconnect() {
   // Loop until we're reconnected
   while (!mqttClient.connected()) {
@@ -217,10 +204,9 @@ void setup()
 
   pinMode(luz1, OUTPUT);
   pinMode(luz2, OUTPUT);
-  pinMode(luz3, OUTPUT);
   digitalWrite(luz1, HIGH);
   digitalWrite(luz2, HIGH); 
-  digitalWrite(luz3, HIGH); 
+  
   Serial.begin(9600);
  
   mqttClient.setServer(server, 10611);
@@ -228,11 +214,19 @@ void setup()
  
   Ethernet.begin(mac, ip);
   // Allow the hardware to sort itself out
-  delay(1500);
 }
  
 void loop()
 {
+  unsigned long currentMillis = millis();
+  if (currentMillis - previousMillis >= interval) {
+    // save the last time you blinked the LED
+    previousMillis = currentMillis;
+    // if the LED is off turn it on and vice-versa:
+    float temperatura = (float(analogRead(LM35))*5/(1023))/0.01;
+    char buffer[7];
+    mqttClient.publish("rs/temp",floatToString(buffer, temperatura, 3));
+  }
   if (!mqttClient.connected()) {
     reconnect();
   }

@@ -4,10 +4,6 @@
 #include <SoftwareSerial.h>
  
 // Update these with values suitable for your network.
-int luz1 = 6;
-int luz2 = 8;
-char *s = {"l"};
-char *c = {"l"};
 
 
 //SoftwareSerial Xbee(0,1);
@@ -15,7 +11,7 @@ char *c = {"l"};
 String confirmation;
 
 byte mac[]    = {  0xDE, 0xED, 0xBA, 0xFE, 0xFE, 0xED };
-IPAddress ip(192,168,1,122);
+IPAddress ip(192,168,0,122);
 IPAddress server(34,200,51,91); // IP DO BROKER
 
 String a;
@@ -52,31 +48,23 @@ char *convert(int key){
 void callback(char* topic, byte* payload, unsigned int length) {
   if (strcmp(topic, "luz1") == 0){
      if(service(payload, length).equals("1") == true){
-      c = 'l';
       Serial.println("luz1on");
-      //if(con == 1){
-      //  mqttClient.publish("r/luz1","1");
-      //}
-      
-      con = 0;
     }else if(service(payload, length).equals("0") == true){
-      c = 'd';
       Serial.println("luz1off");
-      //mqttClient.publish("r/luz1","0");
     }else if(service(payload, length).equals("state") == true){
-      mqttClient.publish("r/luz1",c);
+      Serial.println("luz1state");
     }
   }else if (strcmp(topic, "luz2") == 0){
      if(service(payload, length).equals("1") == true){
-      s = 'l';
-      Serial.println("luz2");
-      //mqttClient.publish("r/luz2","1");
+      Serial.println("luz2on");
     }else if(service(payload, length).equals("0") == true){
-      s = 'l';
-      Serial.println("luz2");
-      //mqttClient.publish("r/luz2","0");
+      Serial.println("luz2off");
     }else if(service(payload, length).equals("state") == true){
-      mqttClient.publish("r/luz2",s);
+      Serial.println("luz2state");
+    }
+  }else if (strcmp(topic, "temp") == 0){
+    if(service(payload, length).equals("state") == true){
+      Serial.println("tempstate");
     }
   }
 }
@@ -88,10 +76,11 @@ void reconnect() {
     // Attempt to connect
     if (mqttClient.connect("897", "sdnlditz", "iyLDGNSrLU4U")) {
       // Once connected, publish an announcement...
-      //mqttClient.publish("outTopic","hello world");
+      mqttClient.publish("outTopic","hello world");
       // ... and resubscribe
       mqttClient.subscribe("#");
     } else {
+      
       // Wait 5 seconds before retrying
       delay(5000);
     }
@@ -100,11 +89,6 @@ void reconnect() {
  
 void setup()
 {
-
-  pinMode(luz1, OUTPUT);
-  pinMode(luz2, OUTPUT);
-  digitalWrite(luz1, HIGH);
-  digitalWrite(luz2, HIGH); 
   Serial.begin(9600);
  
   mqttClient.setServer(server, 10611);
@@ -129,14 +113,31 @@ void loop()
       confirmation += a;
       delay(10);
     }
-    //Serial.println(confirmation);
+    Serial.println(confirmation);
     if(confirmation.indexOf("r/luz1/on") >= 0){
-      Serial.println(confirmation);
       mqttClient.publish("r/luz1","1");
-
     }else if (confirmation.indexOf("r/luz1/off") >= 0){
       mqttClient.publish("r/luz1","0");
+    }else if (confirmation.indexOf("r/luz2/on") >= 0){
+      mqttClient.publish("r/luz2","1");
+    }else if (confirmation.indexOf("r/luz2/off") >= 0){
+      mqttClient.publish("r/luz2","0");
     }
-    
+    else if(confirmation.indexOf("rs/luz1/on") >= 0){
+      mqttClient.publish("rs/luz1","1");
+    }else if (confirmation.indexOf("rs/luz1/off") >= 0){
+      mqttClient.publish("rs/luz1","0");
+    }else if (confirmation.indexOf("rs/luz2/on") >= 0){
+      mqttClient.publish("rs/luz2","1");
+    }else if (confirmation.indexOf("rs/luz2/off") >= 0){
+      mqttClient.publish("rs/luz2","0");
+    }
+    if (confirmation.startsWith("rs/temp/")){
+        Serial.print("tentou publicar temperatura");
+         char copy[3];
+         String con = confirmation.substring(8, 10);
+         con.toCharArray(copy, 3);
+         mqttClient.publish("rs/temp",copy); 
+    }          
   }
 }
